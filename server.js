@@ -56,23 +56,32 @@ app.post('/v1/chat/completions', async (req, res) => {
       }
     }
 
+let thinkingParams = undefined;
+if (ENABLE_THINKING_MODE) {
+  if (nimModel.includes('glm')) {
+    thinkingParams = { enable_thinking: true, clear_thinking: true };
+  } else if (nimModel.includes('deepseek-v4')) {
+    thinkingParams = { thinking: true, reasoning_effort: "high" };
+  }
+}
+
 const nimRequest = {
   model: nimModel,
   messages: messages,
   temperature: temperature || 0.6,
   max_tokens: max_tokens || 32000,
-  chat_template_kwargs: ENABLE_THINKING_MODE ? { enable_thinking: true, clear_thinking: true } : undefined,
+  chat_template_kwargs: thinkingParams,
   stream: stream || false
 };
 
-    const response = await axios.post(`${NIM_API_BASE}/chat/completions`, nimRequest, {
-      headers: {
-        'Authorization': `Bearer ${NIM_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      responseType: stream ? 'stream' : 'json',
-      timeout: 300000
-    });
+const response = await axios.post(`${NIM_API_BASE}/chat/completions`, nimRequest, {
+  headers: {
+    'Authorization': `Bearer ${NIM_API_KEY}`,
+    'Content-Type': 'application/json'
+  },
+  responseType: stream ? 'stream' : 'json',
+  timeout: 300000
+});
 
     if (stream) {
       res.setHeader('Content-Type', 'text/event-stream');
